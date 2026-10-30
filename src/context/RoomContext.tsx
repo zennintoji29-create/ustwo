@@ -167,6 +167,10 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
         })
         .on('broadcast', { event: 'game_move' }, ({ payload }: { payload: any }) => {
           setActiveGame(payload.session);
+        })
+        .on('broadcast', { event: 'game_started' }, ({ payload }: { payload: any }) => {
+          soundEngine.playMatch();
+          setActiveGame(payload.session);
         });
 
       // Postgres Changes (game_sessions & room_members)
@@ -209,6 +213,7 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
       return () => {
         channel.unsubscribe();
+        supabase.removeChannel(channel);
       };
     } else {
       // Local fallback using window BroadcastChannel for multi-tab testing
@@ -270,7 +275,8 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
           addReaction(payload.emoji, payload.x, payload.y);
         } else if (type === 'DRAW_STROKE') {
           strokeListenersRef.current.forEach((cb) => cb(payload));
-        } else if (type === 'GAME_SESSION_UPDATE') {
+        } else if (type === 'GAME_SESSION_UPDATE' || type === 'GAME_STARTED') {
+          soundEngine.playMatch();
           setActiveGame(payload);
         } else if (type === 'READY_TOGGLE') {
           if (user.id !== profile.id) {
@@ -448,6 +454,42 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
     if (configured) {
       try {
         const supabase = createClient();
+
+        // 1. First attempt secure atomic RPC join
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('join_room_by_code', {
+          p_code: cleanCode,
+          p_user_id: profile.id,
+          p_nickname: profile.nickname,
+          p_avatar_id: profile.avatar_id,
+        });
+
+        if (!rpcErr && rpcRes) {
+          if (!rpcRes.success) {
+            setIsLoading(false);
+            return { success: false, error: rpcRes.error || 'Cannot join room' };
+          }
+
+          const joinedRoom = rpcRes.room as CoupleRoom;
+          setRoom(joinedRoom);
+
+          // Fetch members to populate partner & self
+          const { data: members } = await supabase
+            .from('room_members')
+            .select('*, profile:profiles(*)')
+            .eq('room_id', joinedRoom.id);
+
+          const myMem = members?.find((m: any) => m.user_id === profile.id);
+          const otherMem = members?.find((m: any) => m.user_id !== profile.id);
+
+          if (myMem) setMyMember(myMem as RoomMember);
+          if (otherMem) setPartner(otherMem as RoomMember);
+
+          setIsLoading(false);
+          soundEngine.playMatch();
+          return { success: true };
+        }
+
+        // 2. Direct fallback if RPC is not installed
         const { data: roomData, error: roomErr } = await supabase
           .from('couple_rooms')
           .select('*')
@@ -629,10 +671,17 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
       if (err) return { error: err.message };
       setActiveGame(data as GameSession);
+      if (channelRef.current?.send) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'game_started',
+          payload: { session: data as GameSession },
+        });
+      }
       return { session: data as GameSession };
     } else if (channelRef.current?.postMessage) {
       channelRef.current.postMessage({
-        type: 'GAME_SESSION_UPDATE',
+        type: 'GAME_STARTED',
         payload: initialSession,
       });
     }
@@ -651,6 +700,14 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
         .from('game_sessions')
         .update(updates)
         .eq('id', activeGame.id);
+
+      if (channelRef.current?.send) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'game_move',
+          payload: { session: nextGame },
+        });
+      }
     } else if (channelRef.current?.postMessage) {
       channelRef.current.postMessage({
         type: 'GAME_SESSION_UPDATE',

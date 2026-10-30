@@ -5,6 +5,7 @@ import { RoomProvider } from '@/context/RoomContext';
 import { Navbar } from '@/components/common/Navbar';
 import { BottomNav } from '@/components/common/BottomNav';
 import { FloatingReactions } from '@/components/common/FloatingReactions';
+import { PetalsBackground } from '@/components/common/PetalsBackground';
 
 export const metadata: Metadata = {
   title: 'UsTwo 💗 — Two hearts, one little world',
@@ -28,12 +29,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-kawaii-cream text-kawaii-text flex flex-col antialiased selection:bg-pink-200 selection:text-pink-900 pb-20 md:pb-0">
+      <body className="min-h-screen bg-kawaii-cream text-kawaii-text flex flex-col antialiased selection:bg-pink-200 selection:text-pink-900 pb-20 md:pb-0 relative">
         <AuthProvider>
           <RoomProvider>
+            <PetalsBackground />
             <FloatingReactions />
             <Navbar />
-            <main className="flex-1 flex flex-col">{children}</main>
+            <main className="flex-1 flex flex-col relative z-10">{children}</main>
             <BottomNav />
           </RoomProvider>
         </AuthProvider>

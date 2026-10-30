@@ -14,6 +14,7 @@ export default function TruthOrDarePage() {
 
   const [cards, setCards] = useState<TruthDareCard[]>(TRUTH_DARE_CARDS);
   const [selectedType, setSelectedType] = useState<'truth' | 'dare' | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'romantic' | 'cute' | 'funny' | 'deep' | 'playful'>('all');
   const [activeCard, setActiveCard] = useState<TruthDareCard | null>(null);
   const [currentTurn, setCurrentTurn] = useState<string | null>(null);
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -56,7 +57,11 @@ export default function TruthOrDarePage() {
   const pickCard = (type: 'truth' | 'dare') => {
     soundEngine.playCardFlip();
     setSelectedType(type);
-    const pool = cards.filter((c) => c.type === type);
+    let pool = cards.filter((c) => c.type === type);
+    if (selectedCategory !== 'all') {
+      const catPool = pool.filter((c) => c.category === selectedCategory);
+      if (catPool.length > 0) pool = catPool;
+    }
     const randomCard = pool[Math.floor(Math.random() * pool.length)];
     setActiveCard(randomCard);
 
@@ -124,6 +129,27 @@ export default function TruthOrDarePage() {
         {/* If no card chosen yet: Choice Buttons */}
         {!activeCard ? (
           <div className="space-y-4 text-center">
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 pb-1">
+              {(['all', 'romantic', 'cute', 'funny', 'deep', 'playful'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setSelectedCategory(cat);
+                  }}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold capitalize transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-kawaii-pink text-white shadow-2xs'
+                      : 'bg-pink-50 text-kawaii-muted hover:text-kawaii-text'
+                  }`}
+                >
+                  {cat === 'all' ? '✨ All Vibes' : cat}
+                </button>
+              ))}
+            </div>
+
             <p className="text-xs font-bold text-kawaii-muted uppercase tracking-wider">
               {currentTurn === profile?.id ? 'Your turn to choose:' : `${partner?.profile?.nickname || 'Partner'}’s turn to choose:`}
             </p>

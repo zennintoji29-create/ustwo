@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Home, Gamepad2, Sparkles, HeartHandshake, Image as ImageIcon } from 'lucide-react';
 import { soundEngine } from '@/lib/sound/soundEngine';
 
@@ -18,8 +19,8 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-lg border-t border-kawaii-border/70 pb-safe shadow-lg">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-kawaii-border/90 pb-safe shadow-lg">
+      <div className="flex items-center justify-around h-16 px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -29,18 +30,23 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               onClick={() => soundEngine.playClick()}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 ${
-                isActive ? 'text-kawaii-pink font-bold' : 'text-kawaii-muted hover:text-kawaii-text'
+              className={`relative flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 touch-target ${
+                isActive ? 'text-kawaii-pink font-extrabold' : 'text-kawaii-text-muted hover:text-kawaii-text'
               }`}
             >
-              <div
-                className={`p-1 rounded-2xl transition-all ${
-                  isActive ? 'bg-pink-100/70 text-kawaii-pink' : ''
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
+              {isActive && (
+                <motion.div
+                  layoutId="bottomNavActivePill"
+                  className="absolute inset-x-2 inset-y-1.5 bg-pink-100/70 rounded-2xl z-0"
+                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                />
+              )}
+              <div className="relative z-10 p-1">
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.6] text-kawaii-pink' : 'stroke-[1.8]'}`} />
               </div>
-              <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
+              <span className="relative z-10 text-[10px] tracking-tight font-heading mt-0.5">
+                {item.label}
+              </span>
             </Link>
           );
         })}
@@ -48,4 +54,3 @@ export function BottomNav() {
     </nav>
   );
 }
-

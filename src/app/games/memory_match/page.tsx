@@ -212,26 +212,40 @@ export default function MemoryMatchPage() {
             : 'grid-cols-6 max-w-xl'
         }`}
       >
-        {cards.map((card, idx) => (
-          <button
-            key={card.instanceId}
-            onClick={() => handleCardClick(idx)}
-            disabled={card.isFlipped || card.isMatched || isProcessing}
-            className={`aspect-square w-14 sm:w-18 md:w-20 rounded-2xl sm:rounded-3xl flex items-center justify-center text-2xl sm:text-3xl select-none transition-all duration-300 transform active:scale-95 cursor-pointer shadow-sm ${
-              card.isMatched
-                ? 'bg-emerald-100/80 border-2 border-emerald-300 opacity-90 scale-95'
-                : card.isFlipped
-                ? 'bg-white border-2 border-pink-400 rotate-y-180 shadow-kawaii-sm'
-                : 'bg-gradient-to-tr from-pink-200 to-rose-200 hover:from-pink-300 hover:to-rose-300 border-2 border-pink-100'
-            }`}
-          >
-            {card.isFlipped || card.isMatched ? (
-              <span className="animate-in zoom-in-75 duration-200">{card.symbol}</span>
-            ) : (
-              <span className="text-pink-400/80 text-sm sm:text-base font-bold">💗</span>
-            )}
-          </button>
-        ))}
+        {cards.map((card, idx) => {
+          const isRevealed = card.isFlipped || card.isMatched;
+          return (
+            <div
+              key={card.instanceId}
+              className="aspect-square w-14 sm:w-18 md:w-20 [perspective:1000px]"
+            >
+              <button
+                type="button"
+                onClick={() => handleCardClick(idx)}
+                disabled={card.isFlipped || card.isMatched || isProcessing}
+                className={`w-full h-full relative transition-transform duration-500 [transform-style:preserve-3d] active:scale-95 cursor-pointer rounded-2xl sm:rounded-3xl shadow-sm ${
+                  isRevealed ? '[transform:rotateY(180deg)]' : ''
+                }`}
+              >
+                {/* Front Face (Hidden when flipped) */}
+                <div className="absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-pink-200 to-rose-200 hover:from-pink-300 hover:to-rose-300 border-2 border-pink-100 flex items-center justify-center [backface-visibility:hidden] select-none">
+                  <span className="text-pink-400/80 text-sm sm:text-base font-bold animate-pulse">💗</span>
+                </div>
+
+                {/* Back Face (Revealed symbol) */}
+                <div
+                  className={`absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl flex items-center justify-center text-2xl sm:text-3xl select-none [backface-visibility:hidden] [transform:rotateY(180deg)] border-2 ${
+                    card.isMatched
+                      ? 'bg-emerald-100/90 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-pink-400 shadow-kawaii-sm'
+                  }`}
+                >
+                  <span className="animate-in zoom-in-75 duration-200">{card.symbol}</span>
+                </div>
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Footer Info */}

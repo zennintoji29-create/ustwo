@@ -8,6 +8,8 @@ import { SECRET_QUESTIONS, SecretQuestionItem } from '@/lib/games/data';
 import { soundEngine } from '@/lib/sound/soundEngine';
 import { Lock, Unlock, Heart, ArrowRight, EyeOff } from 'lucide-react';
 import { KawaiiAvatar } from '@/lib/avatars';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 export default function SecretQuestionsPage() {
   const { profile } = useAuth();
@@ -60,6 +62,15 @@ export default function SecretQuestionsPage() {
         if (revealed) {
           setPartnerAnswer(answersMap[partner.user_id] || '');
         }
+      }
+      if (revealed && !isRevealed) {
+        soundEngine.playMatch();
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#FF6B95', '#F7B8D0', '#E8DDFB', '#FFDCCB'],
+        });
       }
       setIsRevealed(revealed);
     } else {
@@ -195,22 +206,37 @@ export default function SecretQuestionsPage() {
           </form>
         ) : (
           /* Mutual Reveal */
-          <div className="space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="p-3 bg-pink-100/90 rounded-2xl text-center text-xs font-bold text-pink-800 flex items-center justify-center gap-1.5">
-              <Unlock className="w-4 h-4 text-pink-600" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 20 }}
+            className="space-y-4"
+          >
+            <div className="p-3 bg-pink-100/90 rounded-2xl text-center text-xs font-bold text-pink-800 flex items-center justify-center gap-1.5 shadow-xs">
+              <Unlock className="w-4 h-4 text-pink-600 animate-bounce" />
               <span>Both Answers Unlocked Together! 💗</span>
             </div>
 
             <div className="space-y-3">
-              <div className="p-4 rounded-3xl bg-pink-50/80 border border-pink-200">
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="p-4 rounded-3xl bg-pink-50/90 border border-pink-200 shadow-2xs"
+              >
                 <p className="text-[11px] font-bold text-pink-700">{profile?.nickname || 'You'} wrote:</p>
                 <p className="text-xs sm:text-sm text-kawaii-text font-medium mt-1 whitespace-pre-wrap">{myAnswer}</p>
-              </div>
+              </motion.div>
 
-              <div className="p-4 rounded-3xl bg-purple-50/80 border border-purple-200">
+              <motion.div
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="p-4 rounded-3xl bg-purple-50/90 border border-purple-200 shadow-2xs"
+              >
                 <p className="text-[11px] font-bold text-purple-700">{partner?.profile?.nickname || 'Partner'} wrote:</p>
                 <p className="text-xs sm:text-sm text-kawaii-text font-medium mt-1 whitespace-pre-wrap">{partnerAnswer}</p>
-              </div>
+              </motion.div>
             </div>
 
             <button
@@ -220,7 +246,7 @@ export default function SecretQuestionsPage() {
               <span>Next Secret Question</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-          </div>
+          </motion.div>
         )}
       </div>
     </GameShell>

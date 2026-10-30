@@ -119,8 +119,10 @@ export default function DrawAndGuessPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     setIsDrawing(true);
     prevCoordRef.current = { x, y };
@@ -131,8 +133,10 @@ export default function DrawAndGuessPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x1 = e.clientX - rect.left;
-    const y1 = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x1 = (e.clientX - rect.left) * scaleX;
+    const y1 = (e.clientY - rect.top) * scaleY;
     const prev = prevCoordRef.current || { x: x1, y: y1 };
 
     const ctx = canvas.getContext('2d');
@@ -262,6 +266,29 @@ export default function DrawAndGuessPage() {
                     color === c && !isEraser ? 'scale-120 ring-2 ring-pink-400' : 'hover:scale-110'
                   }`}
                 />
+              ))}
+            </div>
+
+            {/* Stroke Width Selector */}
+            <div className="flex items-center gap-1 bg-white/70 px-2 py-1 rounded-xl border border-pink-200">
+              {[3, 6, 10].map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setLineWidth(w);
+                  }}
+                  title={`Brush ${w}px`}
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                    lineWidth === w ? 'bg-pink-100 text-kawaii-pink' : 'hover:bg-pink-50'
+                  }`}
+                >
+                  <span
+                    className="rounded-full bg-current block"
+                    style={{ width: `${w + 2}px`, height: `${w + 2}px` }}
+                  />
+                </button>
               ))}
             </div>
 

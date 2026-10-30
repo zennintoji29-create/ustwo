@@ -317,7 +317,80 @@ create policy "Memories policy"
   on public.saved_memories for all using (public.is_room_member(room_id));
 
 -- ==========================================
--- 8. REALTIME REPLICATION CONFIGURATION
+-- 8. SECURITY DEFINER ATOMIC ROOM RPCs
+-- ==========================================
+create or replace function public.join_room_by_code(
+  p_code text,
+  p_user_id uuid,
+  p_nickname text default 'Partner',
+  p_avatar_id text default 'kitty'
+)
+returns jsonb
+security definer
+set search_path = public
+as $$
+declare
+  v_room record;
+  v_member_count int;
+  v_existing_member record;
+begin
+  -- 1. Find room by uppercase code
+  select * into v_room from public.couple_rooms
+  where upper(code) = upper(trim(p_code));
+
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Room code not found. Please verify the code.');
+  end if;
+
+  -- 2. Check if user is already a member
+  select * into v_existing_member from public.room_members
+  where room_id = v_room.id and user_id = p_user_id;
+
+  if found then
+    return jsonb_build_object(
+      'success', true,
+      'room', row_to_json(v_room),
+      'already_member', true
+    );
+  end if;
+
+  -- 3. Check capacity (strict 2 players)
+  select count(*) into v_member_count from public.room_members
+  where room_id = v_room.id;
+
+  if v_member_count >= 2 then
+    return jsonb_build_object('success', false, 'error', 'This private room is already full (maximum 2 partners allowed).');
+  end if;
+
+  -- 4. Insert profile if missing
+  insert into public.profiles (id, nickname, avatar_id, custom_status)
+  values (p_user_id, p_nickname, p_avatar_id, 'Playing together 💗')
+  on conflict (id) do update set
+    nickname = coalesce(nullif(excluded.nickname, ''), profiles.nickname),
+    avatar_id = coalesce(nullif(excluded.avatar_id, ''), profiles.avatar_id);
+
+  -- 5. Insert member as partner
+  insert into public.room_members (room_id, user_id, role, mood, is_ready)
+  values (v_room.id, p_user_id, 'partner', 'happy', false);
+
+  -- 6. Mark room active
+  update public.couple_rooms
+  set status = 'active', updated_at = now()
+  where id = v_room.id;
+
+  return jsonb_build_object(
+    'success', true,
+    'room', row_to_json(v_room),
+    'already_member', false
+  );
+end;
+$$ language plpgsql;
+
+-- Grant execution to authenticated & anon
+grant execute on function public.join_room_by_code to anon, authenticated;
+
+-- ==========================================
+-- 9. REALTIME REPLICATION CONFIGURATION
 -- ==========================================
 -- Add tables to the supabase_realtime publication for live CDC subscriptions
 do $$
