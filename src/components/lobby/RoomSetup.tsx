@@ -44,7 +44,7 @@ export function RoomSetup() {
 
   const handleCopy = () => {
     if (!createdCode) return;
-    const url = typeof window !== 'undefined' ? `${window.location.origin}/join/${createdCode}` : createdCode;
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/join?code=${createdCode}` : createdCode;
     navigator.clipboard.writeText(url);
     soundEngine.playPop();
     setCopied(true);

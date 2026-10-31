@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { Suspense, useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Heart, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRoom } from '@/context/RoomContext';
 import { AVATAR_OPTIONS, KawaiiAvatar } from '@/lib/avatars';
 import { soundEngine } from '@/lib/sound/soundEngine';
 
-export default function JoinPage() {
-  const params = useParams();
+function JoinContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const roomCode = ((params?.code as string) || '').toUpperCase();
+  const [codeParam, setCodeParam] = useState(searchParams.get('code') || '');
+  const roomCode = codeParam.trim().toUpperCase();
 
   const { profile, createGuestProfile } = useAuth();
   const { joinRoom, isLoading, error } = useRoom();
@@ -36,6 +37,10 @@ export default function JoinPage() {
 
   const handleProfileAndJoin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!roomCode) {
+      setLocalErr('Please provide a room code');
+      return;
+    }
     setLocalErr(null);
     const name = nickname.trim() || 'Sweetheart';
     createGuestProfile(name, selectedAvatar);
@@ -58,9 +63,11 @@ export default function JoinPage() {
           <Heart className="w-8 h-8 fill-purple-400 text-purple-500" />
         </div>
 
-        <span className="inline-block px-3 py-1 rounded-full bg-pink-100 text-pink-700 text-xs font-bold mb-2">
-          Room Invite: {roomCode}
-        </span>
+        {roomCode && (
+          <span className="inline-block px-3 py-1 rounded-full bg-pink-100 text-pink-700 text-xs font-bold mb-2">
+            Room Invite: {roomCode}
+          </span>
+        )}
         <h1 className="font-heading font-bold text-2xl text-kawaii-text">
           Join Your Partner 💗
         </h1>
@@ -118,6 +125,22 @@ export default function JoinPage() {
               />
             </div>
 
+            {!searchParams.get('code') && (
+              <div>
+                <label className="block text-xs font-bold text-kawaii-text mb-1">
+                  Room Invite Code
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. LOVE1234"
+                  value={codeParam}
+                  onChange={(e) => setCodeParam(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-purple-200 bg-purple-50/40 focus:bg-white text-xs sm:text-sm text-kawaii-text font-bold uppercase tracking-widest text-center"
+                />
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
@@ -137,6 +160,20 @@ export default function JoinPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <Heart className="w-8 h-8 text-pink-400 animate-pulse" />
+        </div>
+      }
+    >
+      <JoinContent />
+    </Suspense>
   );
 }
 
